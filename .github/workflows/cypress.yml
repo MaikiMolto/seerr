@@ -13,16 +13,6 @@ on:
       - 'next.config.ts'
       - 'tsconfig.json'
       - '.github/workflows/cypress.yml'
-  push:
-    branches: [develop]
-    paths:
-      - '{src,server,config,cypress}/**'
-      - 'cypress.config.ts'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'next.config.ts'
-      - 'tsconfig.json'
-      - '.github/workflows/cypress.yml'
 
 permissions:
   contents: read

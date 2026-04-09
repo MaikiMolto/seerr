@@ -3,9 +3,6 @@
 name: Merge Conflict Labeler
 
 on:
-  push:
-    branches: [develop]
-
   pull_request_target:
     branches: [develop]
     types: [opened, synchronize, reopened]
