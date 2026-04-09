@@ -123,7 +123,7 @@
   "components.Layout.UserDropdown.signout": "Abmelden",
   "components.Layout.VersionStatus.commitsbehind": "{commitsBehind} {commitsBehind, plural, one {Version} other {Versionen}} hinterher",
   "components.Layout.VersionStatus.outofdate": "Veraltet",
-  "components.Layout.VersionStatus.streamdevelop": "Seerr (Entwicklung)",
+  "components.Layout.VersionStatus.streamdevelop": "Seerr Custom Build",
   "components.Layout.VersionStatus.streamstable": "Seerr (Stabil)",
   "components.Login.email": "E-Mail-Adresse",
   "components.Login.forgotpassword": "Passwort vergessen?",
