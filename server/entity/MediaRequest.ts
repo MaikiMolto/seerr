@@ -387,7 +387,7 @@ export class MediaRequest {
         media,
         requestedBy: requestUser,
         // If the user is an admin or has the "auto approve" permission, automatically approve the request
-        status: user.hasPermission(
+        status: requestUser.hasPermission(
           [
             requestBody.is4k
               ? Permission.AUTO_APPROVE_4K
@@ -401,7 +401,7 @@ export class MediaRequest {
         )
           ? MediaRequestStatus.APPROVED
           : MediaRequestStatus.PENDING,
-        modifiedBy: user.hasPermission(
+        modifiedBy: requestUser.hasPermission(
           [
             requestBody.is4k
               ? Permission.AUTO_APPROVE_4K
@@ -499,7 +499,7 @@ export class MediaRequest {
         media,
         requestedBy: requestUser,
         // If the user is an admin or has the "auto approve" permission, automatically approve the request
-        status: user.hasPermission(
+        status: requestUser.hasPermission(
           [
             requestBody.is4k
               ? Permission.AUTO_APPROVE_4K
@@ -513,7 +513,7 @@ export class MediaRequest {
         )
           ? MediaRequestStatus.APPROVED
           : MediaRequestStatus.PENDING,
-        modifiedBy: user.hasPermission(
+        modifiedBy: requestUser.hasPermission(
           [
             requestBody.is4k
               ? Permission.AUTO_APPROVE_4K
@@ -537,7 +537,7 @@ export class MediaRequest {
           (sn) =>
             new SeasonRequest({
               seasonNumber: sn,
-              status: user.hasPermission(
+              status: requestUser.hasPermission(
                 [
                   requestBody.is4k
                     ? Permission.AUTO_APPROVE_4K
