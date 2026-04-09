@@ -1,4 +1,3 @@
-import Alert from '@app/components/Common/Alert';
 import Badge from '@app/components/Common/Badge';
 import List from '@app/components/Common/List';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
@@ -31,8 +30,6 @@ const messages = defineMessages('components.Settings.SettingsAbout', {
   outofdate: 'Out of Date',
   uptodate: 'Up to Date',
   versionCheckDisabled: 'Version Check Disabled',
-  runningDevelop:
-    'You are running the <code>develop</code> branch of Seerr, which is only recommended for those contributing to development or assisting with bleeding-edge testing.',
 });
 
 const SettingsAbout = () => {
@@ -64,15 +61,6 @@ const SettingsAbout = () => {
       />
       <div className="section">
         <List title={intl.formatMessage(messages.aboutseerr)}>
-          {data.version.startsWith('develop-') && (
-            <Alert
-              title={intl.formatMessage(messages.runningDevelop, {
-                code: (msg: React.ReactNode) => (
-                  <code className="bg-gray-800/50">{msg}</code>
-                ),
-              })}
-            />
-          )}
           <List.Item
             title={intl.formatMessage(messages.version)}
             className="flex flex-row items-center truncate"
@@ -86,8 +74,8 @@ const SettingsAbout = () => {
                   <a
                     href={
                       data.version.startsWith('develop-')
-                        ? `https://github.com/seerr-team/seerr/compare/${status.commitTag}...develop`
-                        : 'https://github.com/seerr-team/seerr/releases'
+                        ? `https://github.com/MaikiMolto/seerr/compare/${status.commitTag}...develop`
+                        : 'https://github.com/MaikiMolto/seerr/releases'
                     }
                     target="_blank"
                     rel="noopener noreferrer"
@@ -103,8 +91,8 @@ const SettingsAbout = () => {
                   <a
                     href={
                       data.version.startsWith('develop-')
-                        ? 'https://github.com/seerr-team/seerr/commits/develop'
-                        : 'https://github.com/seerr-team/seerr/releases'
+                        ? 'https://github.com/MaikiMolto/seerr/commits/develop'
+                        : 'https://github.com/MaikiMolto/seerr/releases'
                     }
                     target="_blank"
                     rel="noopener noreferrer"
@@ -122,8 +110,8 @@ const SettingsAbout = () => {
               <a
                 href={
                   data.version.startsWith('develop-')
-                    ? 'https://github.com/seerr-team/seerr/commits/develop'
-                    : 'https://github.com/seerr-team/seerr/releases'
+                    ? 'https://github.com/MaikiMolto/seerr/commits/develop'
+                    : 'https://github.com/MaikiMolto/seerr/releases'
                 }
                 target="_blank"
                 rel="noopener noreferrer"
