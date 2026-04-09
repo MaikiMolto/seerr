@@ -13,6 +13,32 @@
 
 **Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
 
+## Custom fork note
+
+This fork exists to keep a small but important API request permission fix available in our own Docker image.
+
+### What is changed?
+
+When a media request is created through the API with a `userId`, Seerr should evaluate auto-approve permissions against the **target user** (`requestUser`), not the **API caller** (`user`).
+
+This fork changes the auto-approve checks in `server/entity/MediaRequest.ts` from `user.hasPermission(...)` to `requestUser.hasPermission(...)` for movie, TV, and season request approval handling.
+
+### Why does this matter?
+
+Without this fix, API requests created with an admin API key can be auto-approved based on the admin's permissions, even when the target user should require manual approval.
+
+This matters for third-party integrations and bots that create requests on behalf of real users, for example:
+
+- n8n workflows
+- Telegram bots
+- WhatsApp bots
+- Home Assistant dashboards
+
+### References
+
+- Issue: <https://github.com/seerr-team/seerr/issues/2678>
+- PR: <https://github.com/seerr-team/seerr/pull/2679>
+
 ## Current Features
 
 - Full Jellyfin/Emby/Plex integration including authentication with user import & management.
