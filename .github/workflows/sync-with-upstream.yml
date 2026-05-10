@@ -1,0 +1,118 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    # Täglich 04:00 UTC = 06:00 MESZ (vor dem 06:00-Heartbeat)
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Upstream ref to rebase on (default: main)'
+        default: 'main'
+        required: false
+
+concurrency:
+  group: sync-with-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      upstream_tag: ${{ steps.tag.outputs.tag }}
+      conflict: ${{ steps.rebase.outcome == 'failure' }}
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          # GH_PAT statt GITHUB_TOKEN, damit Push danach den Build-Workflow triggert
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream + fetch
+        run: |
+          git remote add upstream https://github.com/seerr-team/seerr.git
+          git fetch --tags upstream
+
+      - name: Get upstream latest tag
+        id: tag
+        run: |
+          tag=$(git describe --tags --abbrev=0 upstream/main 2>/dev/null || echo 'unknown')
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "Upstream latest tag: $tag"
+
+      - name: Check if rebase needed
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count develop..upstream/${{ inputs.upstream_ref || 'main' }})
+          AHEAD=$(git rev-list --count upstream/${{ inputs.upstream_ref || 'main' }}..develop)
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
+          echo "develop is $BEHIND commits behind upstream/${{ inputs.upstream_ref || 'main' }} and $AHEAD commits ahead"
+          if [ "$BEHIND" -eq "0" ]; then
+            echo "already_up_to_date=true" >> $GITHUB_OUTPUT
+          else
+            echo "already_up_to_date=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rebase develop on upstream/${{ inputs.upstream_ref || 'main' }}
+        id: rebase
+        if: steps.check.outputs.already_up_to_date == 'false'
+        run: |
+          git rebase upstream/${{ inputs.upstream_ref || 'main' }}
+
+      - name: Push develop (force-with-lease)
+        if: steps.rebase.outcome == 'success'
+        run: |
+          git push origin develop --force-with-lease
+
+      - name: Notify success via Telegram
+        if: steps.rebase.outcome == 'success' && steps.check.outputs.behind != '0'
+        run: |
+          MSG="🟢 Seerr-Fork synced!%0A%0AUpstream: ${{ steps.tag.outputs.tag }}%0AHinten gewesen: ${{ steps.check.outputs.behind }} commits%0A%0ABuild-Workflow startet jetzt automatisch — danach Image in Dockhand redeployen."
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" > /dev/null
+
+      - name: Notify already up-to-date
+        if: steps.check.outputs.already_up_to_date == 'true'
+        run: |
+          echo "✅ develop is already up-to-date with upstream — no sync needed"
+
+      - name: Abort rebase on conflict
+        if: failure() && steps.rebase.outcome == 'failure'
+        run: git rebase --abort || true
+
+      - name: Create issue on conflict
+        if: failure() && steps.rebase.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            const date = new Date().toISOString().split('T')[0];
+            const upstream_tag = '${{ steps.tag.outputs.tag }}';
+            const behind = '${{ steps.check.outputs.behind }}';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Auto-Sync Konflikt mit upstream (${date})`,
+              labels: ['auto-sync', 'help wanted'],
+              body: `Der automatische Rebase auf upstream/main ist fehlgeschlagen.\n\n**Upstream latest:** ${upstream_tag}\n**Hinten gewesen:** ${behind} commits\n**Failed Run:** [Workflow-Log](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n## Manuelles Rebase\n\n\`\`\`bash\ngit clone https://github.com/${context.repo.owner}/${context.repo.repo}.git\ncd ${context.repo.repo}\ngit checkout develop\ngit remote add upstream https://github.com/seerr-team/seerr.git\ngit fetch --tags upstream\ngit rebase upstream/main\n# Konflikte fixen, dann:\ngit rebase --continue\ngit push origin develop --force-with-lease\n\`\`\`\n\nDanach läuft Build-Workflow automatisch.`
+            });
+
+      - name: Notify conflict via Telegram
+        if: failure() && steps.rebase.outcome == 'failure'
+        run: |
+          MSG="🚨 Seerr-Fork-Sync FAIL%0A%0AKonflikt beim Rebase auf upstream %2F main.%0AManueller Eingriff nötig!%0A%0AIssue: https://github.com/MaikiMolto/seerr/issues%0AWorkflow: https://github.com/MaikiMolto/seerr/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" > /dev/null
