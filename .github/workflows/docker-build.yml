@@ -29,7 +29,8 @@ jobs:
       - name: Add upstream + fetch tags
         run: |
           git remote add upstream https://github.com/seerr-team/seerr.git
-          git fetch --tags upstream
+          # --force damit clobber-Tags (z.B. preview-*) nicht den Build killen
+          git fetch --tags --force upstream
 
       - name: Determine upstream tag (closest tag in develop)
         id: upstream

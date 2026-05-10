@@ -41,7 +41,8 @@ jobs:
       - name: Add upstream + fetch
         run: |
           git remote add upstream https://github.com/seerr-team/seerr.git
-          git fetch --tags upstream
+          # --force damit clobber-Tags (z.B. preview-*) nicht den Sync killen
+          git fetch --tags --force upstream
 
       - name: Get upstream latest tag
         id: tag
