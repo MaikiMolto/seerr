@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - develop
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -16,9 +17,27 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      upstream_tag: ${{ steps.upstream.outputs.tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add upstream + fetch tags
+        run: |
+          git remote add upstream https://github.com/seerr-team/seerr.git
+          git fetch --tags upstream
+
+      - name: Determine upstream tag (closest tag in develop)
+        id: upstream
+        run: |
+          # Suche neuesten upstream-Tag der ein ancestor von develop ist (nach Rebase ist das v3.2.0 etc.)
+          tag=$(git describe --tags --abbrev=0 --match='v*' HEAD 2>/dev/null || echo 'unknown')
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "Detected upstream tag: $tag"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -37,8 +56,11 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
+            type=raw,value=${{ steps.upstream.outputs.tag }}-patched
+            type=sha,format=short,prefix=sha-
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -49,3 +71,21 @@ jobs:
             COMMIT_TAG=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Notify Telegram on success
+        if: success()
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          UPSTREAM="${{ steps.upstream.outputs.tag }}"
+          MSG="📦 Seerr Image fertig%0A%0AUpstream: ${UPSTREAM}-patched%0AGHCR: ghcr.io/${{ github.repository }}:latest%0ASHA: ${SHORT_SHA}%0A%0ADockhand: Stack seerr → Re-deploy mit %22Re-pull image%22%0Ahttp://192.168.178.6:3000"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" > /dev/null
+
+      - name: Notify Telegram on failure
+        if: failure()
+        run: |
+          MSG="❌ Seerr Build FAIL%0A%0AWorkflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d "text=$MSG" > /dev/null
