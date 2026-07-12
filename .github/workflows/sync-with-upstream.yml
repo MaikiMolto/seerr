@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       upstream_ref:
-        description: 'Upstream ref to rebase on (default: main)'
-        default: 'main'
+        description: 'Upstream ref to rebase on (default: develop)'
+        default: 'develop'
         required: false
 
 concurrency:
@@ -53,22 +53,22 @@ jobs:
       - name: Check if rebase needed
         id: check
         run: |
-          BEHIND=$(git rev-list --count develop..upstream/${{ inputs.upstream_ref || 'main' }})
-          AHEAD=$(git rev-list --count upstream/${{ inputs.upstream_ref || 'main' }}..develop)
+          BEHIND=$(git rev-list --count develop..upstream/${{ inputs.upstream_ref || 'develop' }})
+          AHEAD=$(git rev-list --count upstream/${{ inputs.upstream_ref || 'develop' }}..develop)
           echo "behind=$BEHIND" >> $GITHUB_OUTPUT
           echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
-          echo "develop is $BEHIND commits behind upstream/${{ inputs.upstream_ref || 'main' }} and $AHEAD commits ahead"
+          echo "develop is $BEHIND commits behind upstream/${{ inputs.upstream_ref || 'develop' }} and $AHEAD commits ahead"
           if [ "$BEHIND" -eq "0" ]; then
             echo "already_up_to_date=true" >> $GITHUB_OUTPUT
           else
             echo "already_up_to_date=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Rebase develop on upstream/${{ inputs.upstream_ref || 'main' }}
+      - name: Rebase develop on upstream/${{ inputs.upstream_ref || 'develop' }}
         id: rebase
         if: steps.check.outputs.already_up_to_date == 'false'
         run: |
-          git rebase upstream/${{ inputs.upstream_ref || 'main' }}
+          git rebase upstream/${{ inputs.upstream_ref || 'develop' }}
 
       - name: Push develop (force-with-lease)
         if: steps.rebase.outcome == 'success'
