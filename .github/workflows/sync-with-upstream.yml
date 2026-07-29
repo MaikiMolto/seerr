@@ -95,7 +95,7 @@ jobs:
       - name: Notify conflict via Telegram
         if: failure() && steps.rebase.outcome == 'failure'
         run: |
-          MSG="🚨 Seerr-Fork-Sync FAIL%0A%0AKonflikt beim Rebase auf upstream %2F main.%0AManueller Eingriff nötig!%0A%0AWorkflow: https://github.com/MaikiMolto/seerr/actions/runs/${{ github.run_id }}"
+          MSG="🚨 Seerr-Fork-Sync FAIL%0A%0AKonflikt beim Rebase auf upstream%2F${{ inputs.upstream_ref || 'develop' }}.%0ADer Fork haengt ${{ steps.check.outputs.behind }} Commits hinterher.%0AManueller Eingriff noetig!%0A%0AWorkflow: https://github.com/MaikiMolto/seerr/actions/runs/${{ github.run_id }}"
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "text=$MSG" > /dev/null
